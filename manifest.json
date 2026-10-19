@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "定时刷新 & 自动点击",
+  "version": "1.0.0",
+  "description": "按域名定时自动刷新页面，并可按 CSS 选择器定时自动点击页面元素，扩展图标实时显示倒计时。",
+  "action": {
+    "default_title": "定时刷新 & 自动点击",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "permissions": ["tabs", "scripting", "storage", "alarms"],
+  "host_permissions": ["<all_urls>"]
+}

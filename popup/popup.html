@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<!--
+  扩展弹窗：上下两个功能区（定时刷新 / 自动定时点击），中间用明细横线分隔。
+  注意：Manifest V3 禁止内联脚本与内联事件处理器，所有逻辑都在 popup.js 中绑定。
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>定时刷新 &amp; 自动点击</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <!-- 顶部：品牌 + 当前域名 -->
+    <header class="app-header">
+      <img class="app-header__logo" src="../images/icon-48.png" alt="" width="30" height="30" />
+      <div class="app-header__text">
+        <h1 class="app-header__title">定时刷新 &amp; 自动点击</h1>
+        <p class="app-header__host">
+          <span class="app-header__dot" aria-hidden="true"></span>
+          <span id="current-host">读取中…</span>
+        </p>
+      </div>
+    </header>
+
+    <!-- 全局提示条：成功 / 警告 / 错误，按语义换色 -->
+    <div id="hint-bar" class="hint" role="status" aria-live="polite" hidden></div>
+
+    <main class="app-main">
+      <!-- ==================== 功能一：定时刷新 ==================== -->
+      <section class="card" aria-labelledby="refresh-title">
+        <div class="card__head">
+          <h2 class="card__title" id="refresh-title">定时刷新</h2>
+          <span id="refresh-pill" class="pill">未启用</span>
+        </div>
+
+        <!-- 运行状态：剩余倒计时 + 停止 -->
+        <div class="status">
+          <div class="status__left">
+            <span class="status__label">剩余</span>
+            <strong id="refresh-remaining" class="status__value">--:--</strong>
+          </div>
+          <button id="refresh-stop" class="btn btn--danger-ghost" type="button" hidden>停止</button>
+        </div>
+
+        <!-- 快捷选项：1M / 5M / 10M / 15M / 60M -->
+        <div class="chips" id="refresh-chips" role="group" aria-label="刷新快捷时间"></div>
+
+        <!-- 自定义周期（秒） -->
+        <form class="field" id="refresh-form" novalidate>
+          <label class="field__label" for="refresh-input">自定义周期（秒）</label>
+          <div class="field__control">
+            <input
+              id="refresh-input"
+              class="field__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="86400"
+              step="1"
+              placeholder="60"
+              aria-describedby="refresh-note refresh-error"
+            />
+            <span class="field__suffix" aria-hidden="true">S</span>
+            <button class="btn btn--primary" type="submit">启用</button>
+          </div>
+          <p class="error-msg" id="refresh-error">请输入 60 ~ 86400 之间的秒数</p>
+          <p class="note" id="refresh-note">
+            输入小于 60 秒将自动重置为 60 秒；快捷项点击即生效。对当前域名的所有标签页生效。
+          </p>
+        </form>
+      </section>
+
+      <!-- 明细分隔横线 -->
+      <hr class="divider" />
+
+      <!-- ==================== 功能二：自动定时点击 ==================== -->
+      <section class="card" aria-labelledby="click-title">
+        <div class="card__head">
+          <h2 class="card__title" id="click-title">自动定时点击</h2>
+          <span id="click-pill" class="pill">未启用</span>
+        </div>
+
+        <div class="status">
+          <div class="status__left">
+            <span class="status__label">剩余</span>
+            <strong id="click-remaining" class="status__value">--:--</strong>
+          </div>
+          <button id="click-stop" class="btn btn--danger-ghost" type="button" hidden>停止</button>
+        </div>
+
+        <!-- 元素选择器 -->
+        <form class="field" id="click-form" novalidate>
+          <label class="field__label" for="click-selector">页面元素选择器</label>
+          <div class="field__control">
+            <input
+              id="click-selector"
+              class="field__input field__input--text"
+              type="text"
+              placeholder="#submit 或 .btn-next"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="click-note click-selector-error"
+            />
+          </div>
+          <p class="error-msg" id="click-selector-error">请填写元素选择器，如 #submit 或 .btn-next</p>
+
+          <!-- 快捷选项：1M / 4M / 9M / 59M -->
+          <div class="chips chips--click" id="click-chips" role="group" aria-label="点击快捷时间"></div>
+
+          <label class="field__label" for="click-input">自定义周期（秒）</label>
+          <div class="field__control">
+            <input
+              id="click-input"
+              class="field__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="86400"
+              step="1"
+              placeholder="60"
+              aria-describedby="click-note click-error"
+            />
+            <span class="field__suffix" aria-hidden="true">S</span>
+            <button class="btn btn--primary" type="submit">启用</button>
+          </div>
+          <p class="error-msg" id="click-error">请输入 1 ~ 86400 之间的秒数</p>
+          <p class="note" id="click-note">
+            周期需小于刷新周期；未找到匹配元素时不会中断，只会在下方提示。
+          </p>
+        </form>
+      </section>
+    </main>
+
+    <!-- 底部：最近一次执行结果 -->
+    <footer class="app-footer">
+      <span class="app-footer__label">最近执行</span>
+      <span id="last-event" class="app-footer__value">暂无</span>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

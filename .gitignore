@@ -1,0 +1,7 @@
+# macOS
+.DS_Store
+
+# 本地 IDE / 技能目录（由工具生成，不入库）
+.agents/
+.claude/
+.codebuddy/
