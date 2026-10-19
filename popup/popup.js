@@ -27,6 +27,9 @@ import {
   validateClickSeconds,
   validateSelector,
   validateClickBeforeRefresh,
+  parseMatchToken,
+  formatMatch,
+  normalizeMatch,
 } from '../src/shared/utils.js';
 
 /* ------------------------------------------------------------------ *
@@ -53,6 +56,7 @@ const el = {
   clickChips: $('click-chips'),
   clickForm: $('click-form'),
   clickSelector: $('click-selector'),
+  clickMatch: $('click-match'), // 命中多个元素时的序号（1 / 3 / last）
   clickInput: $('click-input'),
 
   lastEvent: $('last-event'),
@@ -164,7 +168,12 @@ function renderStatus() {
   el.refreshStatus?.classList.toggle('is-running', Boolean(refresh));
 
   if (el.clickPill) {
-    el.clickPill.textContent = click ? `运行中 · ${formatInterval(click.intervalMs)}` : '未启用';
+    // 序号非 1 时才在胶囊里补充展示，避免文案过长
+    const match = normalizeMatch(click?.match);
+    const matchText = click && match !== 1 ? ` · ${formatMatch(match)}` : '';
+    el.clickPill.textContent = click
+      ? `运行中 · ${formatInterval(click.intervalMs)}${matchText}`
+      : '未启用';
     el.clickPill.classList.toggle('is-running', Boolean(click));
   }
   if (el.clickStop) el.clickStop.hidden = !click;
@@ -180,6 +189,10 @@ function renderStatus() {
   }
   if (click && el.clickSelector && document.activeElement !== el.clickSelector) {
     el.clickSelector.value = click.selector;
+  }
+  if (click && el.clickMatch && document.activeElement !== el.clickMatch) {
+    const match = normalizeMatch(click.match);
+    el.clickMatch.value = match === 'last' ? 'last' : String(match);
   }
   if (click && el.clickInput && document.activeElement !== el.clickInput) {
     el.clickInput.value = String(click.intervalMs / SECOND_MS);
@@ -248,14 +261,16 @@ async function enableRefresh(intervalMs, closeDelay = 0) {
  * 启用自动定时点击。
  * @param {number} intervalMs
  * @param {string} selector
+ * @param {number|'last'} match 第几个；'last' 表示最后一个
  * @param {number} [closeDelay]
  */
-async function enableClick(intervalMs, selector, closeDelay = 0) {
+async function enableClick(intervalMs, selector, match, closeDelay = 0) {
   const response = await send({
     type: MSG.ENABLE_CLICK,
     host: state.host,
     selector,
     intervalMs,
+    match,
   });
   if (!response?.ok) {
     showHint(response?.message || '启用失败，请重试', 'error');
@@ -355,7 +370,7 @@ function bindEvents() {
   });
 
   // 输入时清掉上一次的错误提示，避免边打字边报错
-  for (const input of [el.refreshInput, el.clickInput, el.clickSelector]) {
+  for (const input of [el.refreshInput, el.clickInput, el.clickSelector, el.clickMatch]) {
     input?.addEventListener('input', () => {
       if (el.hint && !el.hint.hidden && el.hint.classList.contains('is-error')) hideHint();
     });
@@ -377,6 +392,14 @@ async function handleClickEnable(intervalMs, closeDelay = 0) {
     return;
   }
 
+  // 匹配序号：留空按第 1 个；支持数字与 last
+  const match = parseMatchToken(el.clickMatch?.value);
+  if (!match.ok) {
+    showHint(match.message, 'error');
+    el.clickMatch?.focus();
+    return;
+  }
+
   const refresh = activeRefresh();
   const check = validateClickBeforeRefresh(intervalMs, refresh ? refresh.intervalMs : null);
   if (!check.ok) {
@@ -384,7 +407,7 @@ async function handleClickEnable(intervalMs, closeDelay = 0) {
     return;
   }
 
-  await enableClick(intervalMs, selector.value, closeDelay);
+  await enableClick(intervalMs, selector.value, match.value, closeDelay);
 }
 
 /**
@@ -416,6 +439,7 @@ function disableAll() {
   for (const control of [
     el.refreshInput,
     el.clickSelector,
+    el.clickMatch,
     el.clickInput,
     ...(el.refreshChips?.querySelectorAll('button') ?? []),
     ...(el.clickChips?.querySelectorAll('button') ?? []),

@@ -39,6 +39,8 @@ import {
   isSupportedUrl,
   formatBadge,
   formatInterval,
+  formatMatch,
+  normalizeMatch,
 } from './src/shared/utils.js';
 
 /* ================================================================== *
@@ -363,7 +365,9 @@ async function updateTabUi(tabId, view) {
   // tooltip 补充完整信息，方便鼠标悬停查看
   const parts = [];
   if (view.refreshMs) parts.push(`定时刷新 ${formatInterval(view.refreshMs)}`);
-  if (view.clickMs) parts.push(`自动点击 ${view.selector || '—'} ${formatInterval(view.clickMs)}`);
+  if (view.clickMs) {
+    parts.push(`自动点击 ${view.selector || '—'}（${formatMatch(view.match)}）${formatInterval(view.clickMs)}`);
+  }
   // tooltip 只描述"已启用了什么"（剩余时间由 badge 呈现），这样文案稳定、可被缓存命中
   const title = parts.join(' · ') || DEFAULT_ACTION_TITLE;
   // tooltip 同样做缓存，避免每秒调用 API
@@ -398,6 +402,8 @@ function createRuntime(hostname, url, config, now) {
     refreshIntervalMs: config.refresh?.enabled ? config.refresh.intervalMs : null,
     clickIntervalMs: config.click?.enabled ? config.click.intervalMs : null,
     clickSelector: config.click?.enabled ? config.click.selector : undefined,
+    // 匹配序号（第几个 / last）：与选择器一起决定"点了谁"
+    clickMatch: config.click?.enabled ? normalizeMatch(config.click.match) : undefined,
     lastError: '',
     lastEventAt: null,
   };
@@ -415,6 +421,7 @@ function resetRuntime(runtime, config, now) {
   runtime.refreshIntervalMs = config.refresh?.enabled ? config.refresh.intervalMs : null;
   runtime.clickIntervalMs = config.click?.enabled ? config.click.intervalMs : null;
   runtime.clickSelector = config.click?.enabled ? config.click.selector : undefined;
+  runtime.clickMatch = config.click?.enabled ? normalizeMatch(config.click.match) : undefined;
 }
 
 /**
@@ -472,18 +479,22 @@ async function alignTab(tab, configs, runtimes, now) {
   }
 
   if (config.click?.enabled) {
-    // 选择器或周期变更都视为新任务，重新开始计时
+    // 选择器、序号或周期变更都视为新任务，重新开始计时
+    const match = normalizeMatch(config.click.match);
     const selectorChanged = previous.clickSelector !== config.click.selector;
+    const matchChanged = previous.clickMatch !== match;
     const intervalChanged = previous.clickIntervalMs !== config.click.intervalMs;
-    if (previous.clickNextAt == null || selectorChanged || intervalChanged) {
+    if (previous.clickNextAt == null || selectorChanged || matchChanged || intervalChanged) {
       previous.clickNextAt = now + config.click.intervalMs;
       previous.clickIntervalMs = config.click.intervalMs;
       previous.clickSelector = config.click.selector;
+      previous.clickMatch = match;
     }
   } else {
     previous.clickNextAt = null;
     previous.clickIntervalMs = null;
     previous.clickSelector = undefined;
+    previous.clickMatch = undefined;
   }
 }
 
@@ -538,17 +549,32 @@ async function refreshTab(tabId) {
  * 注入到页面执行点击的函数。
  * 注意：executeScript 会把函数序列化后注入，**不能引用外部作用域的变量**，
  * 只能通过 args 传参。
+ *
+ * 匹配策略：先用 querySelectorAll 取出全部命中元素，
+ * 再按序号取第 N 个（从 1 开始）或最后一个，因此类选择器命中多个时也能精确指定。
+ *
  * @param {string} selector CSS 选择器
- * @returns {{ ok: boolean, reason?: string }}
+ * @param {number|'last'} match 第几个；'last' 表示最后一个
+ * @returns {{ ok: boolean, reason?: string, total: number, target?: number }}
  */
-function clickBySelector(selector) {
+function clickBySelector(selector, match) {
   try {
-    const element = document.querySelector(selector);
-    if (!element) return { ok: false, reason: '未找到匹配元素' };
-    element.click();
-    return { ok: true };
+    const nodes = document.querySelectorAll(selector);
+    const total = nodes.length;
+    if (total === 0) return { ok: false, reason: '未找到匹配元素', total };
+    // 'last' 等价于最后一个；数字按 1 起步换算成下标
+    const wanted = match === 'last' ? total : match;
+    if (wanted > total) {
+      return {
+        ok: false,
+        reason: `只匹配到 ${total} 个元素，序号 ${wanted} 超出范围`,
+        total,
+      };
+    }
+    nodes[wanted - 1].click();
+    return { ok: true, total, target: wanted };
   } catch (error) {
-    return { ok: false, reason: `选择器无效：${error && error.message ? error.message : error}` };
+    return { ok: false, reason: `选择器无效：${error && error.message ? error.message : error}`, total: 0 };
   }
 }
 
@@ -556,17 +582,19 @@ function clickBySelector(selector) {
  * 在标签页中点击匹配选择器的元素。
  * @param {number} tabId
  * @param {string} selector
+ * @param {number|'last'} match 第几个；'last' 表示最后一个
  */
-async function clickInTab(tabId, selector) {
+async function clickInTab(tabId, selector, match) {
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: clickBySelector,
-      args: [selector],
+      args: [selector, match],
     });
     const result = results?.[0]?.result;
     if (result && result.ok) {
-      await recordEvent(tabId, `已点击 ${selector}`);
+      const target = match === 'last' ? '最后一个' : `第 ${match} 个`;
+      await recordEvent(tabId, `已点击 ${selector} 的${target}（共 ${result.total} 个匹配）`);
       return;
     }
     // 未命中或选择器非法：记录提示但继续倒计时
@@ -611,6 +639,7 @@ function buildTabView(runtime, config, now) {
     refreshMs: config.refresh?.enabled ? config.refresh.intervalMs : null,
     clickMs: config.click?.enabled ? config.click.intervalMs : null,
     selector: config.click?.selector || '',
+    match: normalizeMatch(config.click?.match),
   };
 }
 
@@ -685,7 +714,7 @@ async function tick() {
       if (config.click?.enabled && runtime.clickNextAt != null && now >= runtime.clickNextAt) {
         runtime.clickNextAt = now + config.click.intervalMs;
         changed = true;
-        jobs.push(clickInTab(tabId, config.click.selector));
+        jobs.push(clickInTab(tabId, config.click.selector, normalizeMatch(config.click.match)));
       }
 
       jobs.push(updateTabUi(tabId, buildTabView(runtime, config, now)));
@@ -773,6 +802,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             enabled: true,
             selector: message.selector,
             intervalMs: message.intervalMs,
+            match: normalizeMatch(message.match),
           });
           sendResponse({ ok: true });
           break;

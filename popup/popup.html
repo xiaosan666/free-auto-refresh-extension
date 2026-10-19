@@ -89,19 +89,39 @@
           <button id="click-stop" class="btn btn--danger-ghost" type="button" hidden>停止</button>
         </div>
 
-        <!-- 元素选择器 -->
+        <!-- 元素选择器 + 匹配序号（命中多个时指定点哪一个） -->
         <form class="field" id="click-form" novalidate>
-          <label class="field__label" for="click-selector">页面元素选择器</label>
-          <div class="field__control">
-            <input
-              id="click-selector"
-              class="field__input field__input--text"
-              type="text"
-              placeholder="#submit 或 .btn-next"
-              autocomplete="off"
-              spellcheck="false"
-              aria-describedby="click-note click-selector-error"
-            />
+          <div class="field__row">
+            <div class="field__grow">
+              <label class="field__label" for="click-selector">页面元素选择器</label>
+              <div class="field__control">
+                <input
+                  id="click-selector"
+                  class="field__input field__input--text"
+                  type="text"
+                  placeholder="#submit 或 .btn-next"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-describedby="click-note click-selector-error"
+                />
+              </div>
+            </div>
+            <div class="field__narrow">
+              <label class="field__label" for="click-match">第几个</label>
+              <div class="field__control">
+                <input
+                  id="click-match"
+                  class="field__input"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="1 / last"
+                  autocomplete="off"
+                  spellcheck="false"
+                  title="选择器命中多个元素时指定点击第几个；填 last 表示最后一个，留空默认第 1 个"
+                  aria-describedby="click-note click-selector-error"
+                />
+              </div>
+            </div>
           </div>
           <p class="error-msg" id="click-selector-error">请填写元素选择器，如 #submit 或 .btn-next</p>
 
@@ -126,7 +146,8 @@
           </div>
           <p class="error-msg" id="click-error">请输入 1 ~ 86400 之间的秒数</p>
           <p class="note" id="click-note">
-            周期需小于刷新周期；未找到匹配元素时不会中断，只会在下方提示。
+            周期需小于刷新周期；未找到匹配元素时不会中断，只会在下方提示。<br />
+            命中多个元素时，「第几个」填序号（如 3）或 <b>last</b>（最后一个）；留空为第 1 个。
           </p>
         </form>
       </section>

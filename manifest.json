@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "定时刷新 & 自动点击",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "按域名定时自动刷新页面，并可按 CSS 选择器定时自动点击页面元素，扩展图标实时显示倒计时。",
   "homepage_url": "https://github.com/xiaosan666/free-auto-refresh-extension",
   "action": {

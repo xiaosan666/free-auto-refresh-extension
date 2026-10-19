@@ -179,6 +179,51 @@ export function validateSelector(raw) {
   return { ok: true, value, message: '' };
 }
 
+/** 匹配序号允许的最大值，防止误填超大数字 */
+export const MATCH_MAX = 9999;
+
+/**
+ * 解析「匹配序号」：选择器命中多个元素时，指定点击哪一个。
+ * 支持：正整数（第 N 个，从 1 开始）、`last`（最后一个）、`-1`（等价于 last）。
+ * 留空默认为 1（即原来的 querySelector 行为）。
+ * @param {string|number} raw
+ * @returns {{ ok: boolean, value: number|'last', message: string }}
+ */
+export function parseMatchToken(raw) {
+  const text = String(raw ?? '').trim().toLowerCase();
+  if (text === '' || text === '1') return { ok: true, value: 1, message: '' };
+  if (text === 'last' || text === 'l' || text === '-1') return { ok: true, value: 'last', message: '' };
+  if (/^\d+$/.test(text)) {
+    const value = Number(text);
+    if (value < 1) return { ok: false, value: 1, message: '序号需为不小于 1 的整数' };
+    if (value > MATCH_MAX) {
+      return { ok: false, value: 1, message: `序号不能超过 ${MATCH_MAX}` };
+    }
+    return { ok: true, value, message: '' };
+  }
+  return { ok: false, value: 1, message: '序号只能填数字或 last，例如 2、3、last' };
+}
+
+/**
+ * 把匹配序号转成中文说明，用于提示与 tooltip。
+ * @param {number|'last'|undefined|null} value
+ * @returns {string}
+ */
+export function formatMatch(value) {
+  if (value === 'last') return '最后一个';
+  const index = Number(value);
+  if (!Number.isFinite(index) || index < 1) return '第 1 个';
+  return `第 ${index} 个`;
+}
+
+/** 统一取值：没配过序号时按 1（第一个）处理，兼容旧配置 */
+export function normalizeMatch(value) {
+  if (value === 'last') return 'last';
+  const index = Number(value);
+  if (Number.isFinite(index) && index >= 1) return Math.floor(index);
+  return 1;
+}
+
 /**
  * 校验「点击周期必须小于刷新周期」（仅当刷新已启用时才需要）。
  * @param {number} clickMs 点击周期（毫秒）

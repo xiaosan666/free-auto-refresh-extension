@@ -314,6 +314,22 @@ body {
   gap: 6px;
 }
 
+/* 同一行放两个输入：选择器占满剩余宽度，序号固定窄列 */
+.field__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.field__row .field__grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field__row .field__narrow {
+  flex: 0 0 84px;
+}
+
 .field__input {
   flex: 1 1 auto;
   min-width: 0;
