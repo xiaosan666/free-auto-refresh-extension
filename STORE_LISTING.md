@@ -23,7 +23,10 @@ Auto-refresh tabs on a timer, auto-click any element by CSS selector, with a liv
 
 ## 2. 详细说明（Detailed description）
 
-**中文**
+> 使用方式：主语言贴中文版；点「添加语言 → English」后，在英文页签贴英文版。
+> 说明字段上限 16,000 字符，下面两版都远低于上限。
+
+**中文（主语言）**
 
 ```
 定时刷新 & 自动点击 —— 让页面自己"动"起来。
@@ -33,6 +36,7 @@ Auto-refresh tabs on a timer, auto-click any element by CSS selector, with a liv
 · 也可自定义秒数（下限 60 秒），输入后点"启用"生效
 · 按域名生效：同域名下切换路径继续生效，地址变化自动重新计时
 · 同域名的所有标签页（含后续新开的）都会自动执行，互不干扰
+· 页面上实时显示剩余时间
 
 【自动定时点击】
 · 填入任意 CSS 选择器（#id、.class 等），按周期自动点击匹配元素
@@ -46,9 +50,9 @@ Auto-refresh tabs on a timer, auto-click any element by CSS selector, with a liv
 【隐私】
 · 不联网、不采集、不上传任何数据
 · 所有配置只保存在你本机的 chrome.storage.local
-· 开源可审计：github.com/xiaosan666/free-auto-refresh-extension
+· 开源可审计：https://github.com/xiaosan666/free-auto-refresh-extension
 
-适用场景：监控数据看板、抢票/秒杀页面、签到与投票、页面保活、自动化测试辅助等。
+适用场景：监控数据看板、定时签到、页面保活、周期性检查页面状态、演示与大屏值守等需要"页面按固定节奏自动刷新"的工作。
 ```
 
 **English**
@@ -61,6 +65,7 @@ AUTO REFRESH
 · Or type a custom interval in seconds (minimum 60s)
 · Works per domain: switching paths within the same domain keeps it running, and the timer restarts when the address changes
 · Applies to every tab of that domain, including tabs opened later — each with its own countdown
+· The remaining time is shown right in the popup
 
 AUTO CLICK
 · Enter any CSS selector (#id, .class, …) and the matching element is clicked on schedule
@@ -74,9 +79,9 @@ LIVE COUNTDOWN ON THE ICON
 PRIVACY
 · No network requests, no data collection, no uploads
 · All settings stay in your local chrome.storage.local
-· Open source and auditable: github.com/xiaosan666/free-auto-refresh-extension
+· Open source and auditable: https://github.com/xiaosan666/free-auto-refresh-extension
 
-Great for dashboards, ticket/seckill pages, check-ins and polls, keeping pages alive, and light test automation.
+Use cases: monitoring dashboards, scheduled check-ins, keeping pages alive, periodically checking a page's state, unattended demos and big-screen displays — any work that needs a page to refresh on a fixed schedule.
 ```
 
 ---
